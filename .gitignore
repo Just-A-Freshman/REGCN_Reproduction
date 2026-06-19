@@ -1,7 +1,6 @@
 .pytest_cache
 model/
 other/
-understand/
 .env
 __pycache__/
 _*.py

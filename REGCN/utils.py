@@ -1,0 +1,53 @@
+import tensorflow as tf
+import scipy.sparse as sp
+import numpy as np
+import numpy.linalg as la
+
+
+def normalized_adj(adj):
+    adj = sp.coo_matrix(adj, dtype=np.float32)
+    rowsum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_inv_sqrt[np.isnan(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    normalized_adj = adj.dot(d_mat_inv_sqrt).transpose().dot(
+        d_mat_inv_sqrt).tocoo()
+    normalized_adj = normalized_adj.astype(np.float32)
+    return normalized_adj
+
+
+def sparse_to_tuple(mx):
+    mx = mx.tocoo()
+    coords = np.vstack((mx.row, mx.col)).transpose()
+    L = tf.SparseTensor(coords, mx.data, mx.shape)
+    return tf.sparse.reorder(L)
+
+
+def calculate_laplacian(adj, lambda_max=1):
+    adj = normalized_adj(adj + sp.eye(adj.shape[0]))
+    adj = sp.csr_matrix(adj)
+    adj = adj.astype(np.float32)
+    return sparse_to_tuple(adj)
+
+
+def evaluation(a, b):
+    F_norm = la.norm(a - b, 'fro') / la.norm(a, 'fro')
+    return 1 - F_norm
+
+
+def get_trend(pre, cur):
+    trends = []
+    for i in range(len(pre)):
+        if cur[i, 0] - pre[i, 0] > 0:
+            trends.append(1)
+        else:
+            trends.append(0)
+    return np.array(trends)
+
+
+def avg_relative_error(actual, pred):
+    total = 0
+    for i in range(len(pred)):
+        total += abs(pred[i, 0] - actual[i, 0]) / actual[i, 0]
+    return total / len(pred)

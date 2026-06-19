@@ -1,0 +1,24 @@
+# REGCN 股票预测项目依赖
+# 推荐 Python 3.10（经测试，pip install -r requirements.txt 可直接安装）
+# 平台: Linux x86_64
+
+# 深度学习框架
+tensorflow==2.12.0
+numpy==1.23.5
+
+# 数据处理
+pandas
+scipy
+
+# 机器学习
+scikit-learn
+statsmodels==0.13.2
+
+# 信号分解 (VMD)
+vmdpy==0.1
+
+# 动态时间规整
+fastdtw==0.3.4
+
+# 可视化
+matplotlib

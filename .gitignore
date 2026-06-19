@@ -1,0 +1,10 @@
+.pytest_cache
+model/
+other/
+understand/
+.env
+__pycache__/
+_*.py
+.claude/
+lightning_logs/
+

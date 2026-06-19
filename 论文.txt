@@ -1,0 +1,898 @@
+                                            Expert Systems With Applications 250 (2024) 123948
+                                                 Contents lists available at ScienceDirect
+
+                                      Expert Systems With Applications
+
+                                        journal homepage: www.elsevier.com/locate/eswa
+
+Enhanced stock price forecasting through a regularized ensemble framework
+with graph convolutional networks
+
+Dongbo Ma, Da Yuan 
+
+School of Computer Science and Technology, Shandong Technology and Business University, Yantai 264005, China
+
+ARTICLE INFO                          ABSTRACT
+
+Keywords:                             Stock prediction is a prominent and challenging topic of interest for both investors and researchers. With
+Stock price prediction                the introduction of Graph Convolutional Networks (GCNs) to financial data analysis, many researchers have
+Variational mode decomposition        attempted to use GCNs to exploit the interrelationships among stock data. However, a notable research gap
+Ensemble graph convolutional network  remains in the application of GCNs to establish associations among transaction data, which inherently exhibit
+Regularization                        more stable and well-defined correlations. Hence, this study proposes a regularized ensemble framework
+                                      with graph convolutional networks for stock price prediction. The framework employs multiple multi-graph
+                                      convolutional networks to construct an ensemble graph convolutional network, elucidating spatiotemporal
+                                      relationships within transaction data across various time scales. Additionally, the Variational Modal Decom-
+                                      position (VMD) method is utilized to extract features from each dimensional sequence of the transaction data,
+                                      enabling the capture of features across different time scales and mitigating non-stationarity and noise in the
+                                      data. Furthermore, a regularization term incorporating trend accuracy is introduced to strike a balance between
+                                      numerical precision and trend accuracy, thereby enhancing the overall model performance. Finally, this study
+                                      presents a specialized investment strategy designed for stock price prediction. Our approach yields substantial
+                                      improvements on SSE and DJIA datasets, with ACC and 2 improving by over 15% and 10%, respectively,
+                                      accompanied by reductions of more than 40% in RMSE, MAE, and MAPE compared to the baseline. These
+                                      results underscore the effectiveness, robustness, and adaptability of our proposed methodology. Our codes and
+                                      data can be accessed at https://github.com/WonderNothing/REGCN/.
+
+1. Introduction                                                             Gated Recurrent Units (GRUs) (Gupta et al., 2022), or Attention Mech-
+                                                                            anisms (Wang et al., 2023). Furthermore, research has indicated that
+    Financial time series prediction is widely acknowledged as a sig-       several input variables can account for variations in stock prices. Ana-
+nificant challenge in both time series analysis and machine learning        lyzing the relationships between these variables makes it possible to
+literature (Tay & Cao, 2001). The accurate prediction of stock prices       identify factors that influence stock price fluctuations, thus making
+is paramount for making informed investment decisions and effec-            multi-input variable models generally more accurate than single-input
+tively participating in capital markets. While the predictability of stock  variable models (Lin et al., 2021).
+markets remains a subject of ongoing debate, numerous studies have
+confirmed that stocks can be predicted to a certain extent (Bollerslev          The proposal for Graph Convolution Networks (GCNs) (Kipf &
+et al., 2014).                                                              Welling, 2016) introduces an innovative perspective on constructing
+                                                                            inter-variable relationships. The basic idea of GCNs is to explicitly
+    The landscape of stock prediction models primarily consists of two      or implicitly build a graph representing the relationships between
+categories: statistical models and Artificial Intelligence (AI) models.     samples. The graph structure and node features are then utilized
+AI-based models outperform their statistical counterparts in managing       as inputs, enabling the capture of complexity through ensemble in-
+non-linearity, dynamics, instability, and noisy stock price data, thereby   formation and nonlinear transformations, ultimately generating new
+achieving greater accuracy. Deep learning models have received con-         features. To better depict the interrelationships between variables,
+siderable attention in stock prediction research due to their superior      we construct a correlation graph wherein each variable serves as a
+representational power and lack of undue assumptions. These models          node. The historical data of each variable acts as a node feature, and
+are usually based on Convolutional Neural Networks (CNNs) (Chen             the relationships between variables are represented as edges. GCN is
+et al., 2021), Long Short-Term Memory (LSTM) (Banik et al., 2022),
+
+   Corresponding author.
+      E-mail addresses: 2021410057@sdtbu.edu.cn (D. Ma), yuanda@sdtbu.edu.cn (D. Yuan).
+
+https://doi.org/10.1016/j.eswa.2024.123948
+Received 23 October 2023; Received in revised form 7 April 2024; Accepted 8 April 2024
+Available online 11 April 2024
+0957-4174/© 2024 Elsevier Ltd. All rights reserved.
+D. Ma and D. Yuan                                                                                                                  Expert Systems With Applications 250 (2024) 123948
+
+employed to incorporate these relationships as incremental information                · A regularized ensemble framework with graph convolution net-
+into the model, capturing nonlinear relationships between variables                     works, and an investment strategy tailored to the characteristics
+and improving predictions of interactions among multivariables.                         of stock price prediction are proposed, and the effectiveness of
+                                                                                        the proposed model and investment strategy are demonstrated on
+    Given the capacity of GCNs to preserve temporal relationships                       several real-world datasets.
+among variables while capitalizing on their interdependence, the in-
+tegration of GCNs into the modeling of stock series emerges as a                      · Introducing an ensemble graph convolutional network frame-
+promising avenue for research. A multitude of GCN-based investiga-                      work. The framework employs VMD for extracting features from
+tions has focused on analyzing the correlation between stocks. Notably,                 various time scales within the original time series data. In ad-
+in a study (Chen et al., 2018), an exhaustive graph was constructed,                    dition, it utilizes multi-graph convolutional networks to capture
+encompassing all involved corporations, based on factual market in-                     concealed correlations across different transaction data scales.
+vestment data. By employing node embedding methods on the graph,
+a distributed representation for each corporation was acquired. An                    · Incorporating a trend accuracy regularization term into the loss
+alternative and innovative approach was introduced by Li et al. (2021),                 function of the stock price prediction model enhances its overall
+leveraging overnight news to establish a relational graph between                       performance, practicality, and reliability, thereby increasing its
+stocks and employing a GCN to model the connections between stocks.                     suitability for real investment decisions and improving returns.
+In a related study (Ma et al., 2023), a GCN was implemented to capture                  This approach's efficacy is corroborated through trading simu-
+the impact of news related to associated companies on the target stock.                 lations, which demonstrate its potential to elevate the model's
+Building upon these initiatives, Ma et al. (2024) further extended the                  return rate.
+research by constructing multiple relationship graphs using correlation
+coefficients and dynamic time warping based on historical stock data.                The remainder of this paper is organized as follows: Section 2 pro-
+                                                                                 vides a brief overview of relevant prior research. Section 3 presents a
+    The relationships among stocks are inherently characterized by               comprehensive description of our model. Section 4 outlines the dataset
+volatility, noise, ambiguity, and dynamic changes, often resulting in            and details the experimental setup used in our study, accompanied by a
+inaccurate or incomplete stock relationship graphs. In contrast, cor-            presentation and analysis of our experimental results. Finally, Section 5
+relations among transaction data demonstrate greater stability and               provides a summary of our work and an outlook for future research.
+well-defined patterns. However, the primary emphasis of GCN-based
+research is directed towards investigating correlations among stocks,            2. Related work
+and there is a dearth of studies that effectively employ GCNs to harness
+correlations among transaction data. Furthermore, in stock price pre-                Stock prediction is a prominent challenge within the fields of time
+diction, the ability to accurately predict trends is of equal importance.        series analysis and machine learning, garnering considerable attention
+The precision of trend prediction significantly influences the effective-        from researchers. These prediction techniques are broadly classified
+ness of investment decisions and risk management. Focusing solely on             into two categories: statistical and Artificial Intelligence (AI) meth-
+numerical precision may compromise the model's ability to capture                ods. Statistical methods traditionally assume linearity among normally
+stock price trends accurately, thereby limiting its utility and reliability.     distributed variables (Wang et al., 2011), employing models such as
+Therefore, it is essential to balance numerical precision with trend             Linear Regression (LR) (Xu et al., 2022), Autoregressive Conditional
+accuracy for stock price prediction. However, existing models often              Heteroskedasticity (ARCH) models (Alam et al., 2013), Autoregressive
+emphasize numerical precision while neglecting to accurately capture             Integrated Moving Average (ARIMA) (Kumar et al., 2022), and Gener-
+stock price trends.                                                              alized Autoregressive Conditional Heteroskedasticity (GARCH) (Liu &
+                                                                                 Shi, 2022). These approaches are predicated on the notion that the time
+    To construct spatio-temporal relationships between transaction data          series in question are generated by a linear process and endeavor to
+and balance the numerical precision and trend accuracy of stock price            model the underlying process based on this assumption. However, stock
+prediction, this paper introduces a regularized ensemble framework               data are inherently characterized by high noise levels, nonlinearity, and
+with graph convolution networks. The inherent noise in stock price               nonparametric traits (Si & Yin, 2013), rendering statistical methods less
+data, attributed to market conditions and economic fluctuations (Cheng           effective for stock prediction.
+& Wei, 2014), poses a barrier to directly predicting raw time se-
+ries. Therefore, an ensemble graph convolution network is devised                    Subsequently, with the boom in artificial intelligence technology,
+by integrating Variational Mode Decomposition (VMD) and multiple                 machine learning techniques were introduced to deal with complex
+multi-graph convolution networks. VMD is employed to extract features            financial market data and were shown to be useful for making stock
+from each dimension of the original transaction data series, repre-              predictions (Tang et al., 2019). In contrast to statistical methods,
+senting distinct time scales. These features serve as node attributes            machine learning models require fewer assumptions and possess robust
+in the subsequent graph model. Subsequently, node embeddings are                 capabilities for nonlinear mapping, enabling them to accommodate a
+generated individually for features from each dimension of the se-               plethora of features. Common machine learning methodologies encom-
+quence, utilizing multiple graph convolutional networks to capture               pass Random Forest (RF) (Park et al., 2022), Decision Tree (Qiu et al.,
+relationships within transaction data from various perspectives. Tem-            2022), Support Vector Regression (SVR) (Ye et al., 2022), and neural
+poral relationships of the node embeddings are modeled using Gated               networks (Lv et al., 2022). Notably, the advent of deep learning has
+Recurrent Units (GRUs), and the outputs from each sequence dimension             gained immense popularity in stock prediction, enhancing the capacity
+are integrated to facilitate stock price prediction.                             to capture complex data representations. Widely adopted deep learning
+                                                                                 methods include Convolutional Neural Networks (CNNs) (Chen et al.,
+    To strike a balance between numerical precision and trend accu-              2021), Recurrent Neural Networks (RNNs) (Dudukcu et al., 2023), Long
+racy in stock price prediction, a trend accuracy regularization term             Short-Term Memory networks (LSTMs) (Banik et al., 2022), Restricted
+is incorporated into the loss function of the stock price prediction             Boltzmann Machines (RBMs) (Xi & Xu, 2023), and Gated Recurrent
+model. This innovative approach enhances the overall performance,                Units (GRUs) (Gupta et al., 2022).
+practicality, and reliability of the model, making it more suitable for
+real investment decisions and yielding higher returns. Additionally, the             To enhance the efficacy of stock prediction models in capturing
+paper introduces an inventive investment strategy that more accurately           the intricate and nonlinear relationships prevalent in the stock market,
+reflects performance differences among stock price prediction models             researchers have increasingly turned to multivariate prediction meth-
+in trading simulations. This strategy allocates proportional investments         ods. These methods incorporate diverse data types such as opening
+to the top  predicted stocks based on both accuracy and return scores.           prices, high prices, low prices, and trading volumes into multivariate
+                                                                                 models, thereby augmenting the accuracy and generalizability of stock
+
+                                                                              2
+D. Ma and D. Yuan                                                                                                                 Expert Systems With Applications 250 (2024) 123948
+
+predictions (Lin et al., 2021). For instance, in Park et al. (2022), a          3. Methodology
+multi-task model was constructed by integrating multiple technical
+indicators to enhance predictability and profitability. Similarly, Chen         3.1. Problem formulation
+et al. (2022) employed Dynamic Time Warping (DTW) for distance cal-
+culation and K-means clustering to group stock price data, leveraging               The stock price prediction task can be defined as a multivariate
+the interactions within clusters to improve prediction accuracy.                time series prediction problem. In this study, we employ transaction
+                                                                                data related to a stock, including attributes such as open price, close
+    Furthermore, Graph Convolutional Networks (GCNs) have been in-              price, high price, low price, and trading volume, to predict the close
+troduced to enhance the capture of correlations among variables, par-           price of the stock. To better leverage the relationships among transac-
+ticularly in applications such as stock prediction. Chen et al. (2021)          tion data, our research constructs multiple weighted prior knowledge
+proposed a novel method for stock trend prediction using a Graph                graphs through measures of similarity and distance among transaction
+Convolutional feature-based Convolutional Neural Network (GC-CNN)               data, denoted as  = (1, 2, ... , ). Here,  = (, ), where 
+model, which considers both stock market information and individual             signifies a set of  = || vertices representing distinct transaction data
+stock details. In a related study (Ma et al., 2023), a GCN was employed         points, and  represents a set of edges characterizing the strength of
+to capture the news effects of associated companies on the target               relationships between these vertices.
+stock. The methodology involved integrating numerical characteristics,
+market-driven news sentiment, and the news sentiment of related stocks              In this work, we denote the state of a stock at time step  as a
+to predict stock price movements. Ma et al. (2024) extended the                 feature vector  = (0, 1, ... ,  -1), where  corresponds to vari-
+research by constructing multiple relationship graphs using correla-            ous time intervals (typically daily in this context). The stock's state
+tion coefficients and dynamic time warping based on historical stock            at time  is represented as a collection of transaction data features
+data. Their predictive model incorporated decomposition algorithms,              = (, , ... , ). Therefore, the formulated stock price
+graph convolutional networks, and adversarial training techniques for           prediction problem can be defined as follows:
+forecasting stock prices. Additionally, Feng et al. (2022) applied nor-
+malized mutual information based on a logarithmic rate of return                    Given a graph  and a sequence of stock transaction data with a
+and Detrended Cross-Correlation Analysis (DCCA) coefficients to assess          window length of , denoted as  = (0, 1, ... , -1), our objective is
+stock market correlations, affirming the utility of graphical models in         to learn a function  that utilizes  and  to predict the closing price
+finance. Cui, Li et al. (2023) proposed the HyperGraph Tri-Attention            at the next time step, denoted as . This can be formally expressed
+Network (HGTAN) to enhance hypergraph convolutional networks with               as follows:
+a hierarchical organization of intra-hyperedge, inter-hyperedge, and
+inter-hypergraph attention modules. HGTAN adaptively determines the              =  (, )  (1)
+importance of nodes, hyperedges, and hypergraphs during information
+propagation among stocks, enabling the full exploitation of potential           3.2. Framework overview
+synergies between stock movements. Moreover, Li et al. (2022) pro-
+posed a novel similarity framework to overcome the limitations of chart             To harness the correlations within transaction data effectively while
+similarity on specific charts. Specifically, after extracting the key point     striking a balance between numerical precision and trend accuracy,
+sequence from the stock price sequence, it is transformed into a graph,         this paper introduces a regularized ensemble framework with graph
+and ultimately, any graph kernel, such as the Weisfeiler Lehman kernel          convolutional networks for stock price prediction. The framework of
+and GCN, is used to fully mine the information in the graph to predict          the proposed method is depicted in Fig. 1. The model is structured into
+stock trends.                                                                   five key parts: sequence decomposition, graph generation, multi-graph
+                                                                                convolutional network, gated recurrent unit, and regularization loss.
+    To mitigate the impact of stock data's nonlinear, non-stationary
+properties, and inherent noise on model performance, hybrid mod-                    In the sequence decomposition part, the transaction data are decom-
+els combining decomposition algorithms with predictive models have              posed by Variational Modal Decomposition (VMD) to obtain smoother
+emerged, showing promising superiority. These hybrid models employ              subsequences of different scales. After that, the relationship graphs are
+decomposition algorithms to break the original time series into rel-            constructed by calculating both correlation (Pearson correlation, Spear-
+atively smooth subsequences, facilitating more efficient construction           man's Rank correlation) and distance (dynamic time warping) among
+of predictive models. In one instance, Ma et al. (2024) decomposed              the transaction data of each subsequence, respectively. The Multi-
+subseries using Variational Modal Decomposition (VMD) and used them             Graph Convolutional Network (Multi-GCN) part treats each transaction
+as inputs to a multi-graph convolutional network, optimizing VMD                data point as a node within the graph and generates node embeddings
+parameters with Genetic Algorithms (GA) to predict stock prices for             to capture spatial relationships between nodes. Next, the Gated Recur-
+the subsequent day. Another approach employs Multivariate Empirical             rent Unit (GRU) is employed to model the temporal dependencies of
+Modal Decomposition (MEMD) coupled with Long Short-Term Memory                  the node embeddings. The predicted values for each subsequence are
+(LSTM) models for multi-step-ahead prediction of stock price indices,           aggregated to produce the predicted value for the original sequence.
+capitalizing on the intrinsic characteristics of complex stock price index      To strike a balance between numerical precision and trend accuracy,
+time series (Deng et al., 2022). Furthermore, Cui, Wang et al. (2023)           this paper introduces regularization to the Mean Squared Error (MSE)
+introduced a multichannel VMD-CBAM-BiLSTM hybrid model, termed                  loss and incorporates a regularization term to improve the overall
+McVCsB, which combines VMD and Convolutional Block Attention                    performance of the prediction.
+Module (CBAM) algorithms for noise reduction and deep feature extrac-
+tion, employing an improved decomposition-reconstruction prediction             3.3. Sequences decomposition
+framework for stock index prediction.
+                                                                                    Stock price series exhibit considerable uncertainty and noise (Cui,
+    In summary, based on current knowledge, the primary emphasis                Wang et al., 2023), which renders stock data more challenging to pre-
+of GCN-based research is directed towards investigating correlations            dict. Employing decomposition algorithms can decompose the original
+among stocks, and there is a dearth of studies that effectively employ          sequences into multiple smoother subsequences, thereby reducing the
+GCNs to harness correlations among transaction data. Moreover, the              effects of data nonstationarity and noise. Furthermore, the integration
+ability to accurately predict trends is equally important in stock price        of decomposition algorithms into stock prediction models has demon-
+forecasting. The exclusive emphasis on numerical precision poses a risk         strated effectiveness in enhancing model performance (Lahmiri, 2016).
+of compromising the model's capacity to capture stock price trends,             Common decomposition techniques encompass wavelet decomposition,
+thereby constraining its utility and reliability. Despite this, preva-
+lent stock price prediction models persistently prioritize numerical
+precision, often neglecting the nuanced capture of stock price trends.
+
+                                                                             3
+D. Ma and D. Yuan                                                                                                  Expert Systems With Applications 250 (2024) 123948
+
+                                                   Fig. 1. Framework of the proposed method.
+
+Table 1                                                                                 Intrinsic Mode Functions (IMFs) in the SSE dataset with the closing
+Results of the ADF test for the original series and the decomposed IMFs.                price of 600,000 stock codes. Smaller values of the ADF statistic and
+                                                                                        -value in Table 1 indicate improved series stability. The table's data
+                    Original  IMF1        IMF2                            IMF3          highlights the effective reduction of non-stationarity through VMD
+                                                                                        decomposition.
+ADF statistic       -0.8875   -1.6647     -7.3048                         -13.2007
+-value              0.792055  0.449410    0.0000                          0.0000            The parameter settings for VMD include the number of IMFs (),
+                                                                                        the penalty factor (), the Lagrange multiplier (), and the convergence
+Empirical Modal Decomposition (EMD), Singular Spectrum Analysis                         tolerance level (). Notably, , and  have a limited impact on the
+(SSA), and Variational Modal Decomposition (VMD). Among these,                          decomposition results and are often set as constants. In contrast, 
+EMD and VMD are the most widely adopted and effective methods in                        and  significantly affect the decomposition outcomes and are typically
+the field of stock prediction (Deng et al., 2022; Huang et al., 2021).                  determined based on the characteristics of the data.
+
+    VMD is an adaptive decomposition method proposed by Dragomiret-                         Genetic Algorithm (GA) (Holland, 1992) is a versatile meta-heuristic
+skiy and Zosso (2013), which uses a non-recursive signal decomposition                  algorithm known for its adaptability, global search capability, and
+optimization algorithm. Compared to EMD, VMD exhibits greater ef-                       scalability. It operates by exploring the solution space of a problem
+ficiency and lower noise sensitivity in data processing. Consequently,                  and progressively optimizing solutions through operations such as se-
+VMD proves more suitable for handling complex data and has shown                        lection, crossover, and mutation, simulating genetic processes. GA finds
+superior performance in financial data forecasting (Lahmiri, 2016).                     extensive application in optimization problems, search problems, and
+                                                                                        machine learning due to its flexibility and suitability for handling
+    By obtaining the optimal solution of the constrained variational                    complex problem spaces and multi-objective optimization challenges.
+model, VMD achieves the decomposition of the original sequence  ()
+into  Intrinsic Modal Functions (IMFs), , with each  intended to                            Based on the findings in the literature (Jia et al., 2021), the Pearson
+closely match a center frequency . The bandwidths of these modes                        coefficient between residuals and the original sequence should be
+can be estimated through the following steps: first, for each mode ,                    minimized when employing VMD for complete decomposition. Based
+the Hilbert transform is used to compute the correlation analysis signal,               on this theory, this study employs a combined optimization approach
+and then the one-sided spectrum is derived. Second, the spectrum of                     that integrates GA and residual similarity to determine the optimal 
+each mode  is shifted to the baseband using exponential mixing,                         and . In addition, the training set is initially decomposed, and the same
+with the center pulsation tuned to the respective estimate. Finally, the                parameters are then applied to decompose the test set to prevent data
+bandwidth is estimated via H1 Gaussian smoothing of the demodulated                     leakage and maintain consistency. Subsequently, the fitness function for
+signal. The constraints of the variational problem can be expressed as                  GA is defined as the average Spearman's Rank correlation coefficient
+follows:                                                                                between the original sequence and the residuals of the training set,
+                                                                                        denoted as (train(), Res()). The combined algorithm can be
+  min  }(    ,  )                                                               (2)     expressed as follows:
+
+{ },{
+
+=    min  }         [(()+())()] exp(-)22                                                                                    (train         (),  Res  ())
+                =1
+   { },{                                                                                                              =1
+                                                                                        (train(), Res())        =
+                                                                                                                            
+where {} = {1, 2, ... , } and {} = {1, 2, ... , } denote
+the set of th submodules and their corresponding center frequencies,                          {2, 3, ... , 10}
+
+respectively.  represents the time derivative, () is the Dirac function,                ..      [  (()) ,                               ]
+ denotes convolution, and  is the number of IMFs.                                                               3 ×  ( ())
+                                                                                                   2
+    To optimize the constrained results, quadratic penalty parameters
+                                                                                            
+
+                                                                                            
+
+and augmented Lagrange equations are introduced. The constrained                        where  represents the number of types of transaction data, train()
+                                                                                        signifies the original training set sequence of the transaction data,
+optimization problem can be expressed as follows:
+                                                                                        and Size(train()) represents the length of the original sequence in the
+({}, {}, ) = (, )                                                               (3)     training set.
+
+                              
+
++  () -  ()22 + (),  () -  ()                                                           3.4. Graphs generation
+
+          =1                  =1
+
+where  denotes the balancing parameter for the data fidelity con-                           To better leverage correlations among variables, researchers have
+                                                                                        introduced Graph Convolutional Networks (GCNs) to model spatial
+straint.                                                                                relationships. Most existing stock prediction methods based on GCNs
+                                                                                        focus on capturing correlations among stocks, while lack of research on
+   Table 1 presents the results of the Augmented Dickey­Fuller (ADF)
+
+test conducted on the original stock sequence and the decomposed
+
+                                                                                     4
+D. Ma and D. Yuan                                                                                                 Expert Systems With Applications 250 (2024) 123948
+
+the correlation of transaction data. In reality, in contrast to the volatile,     graph  . The adjacency matrix  of the synthesis graph  is
+ambiguous, and dynamically changing correlations among stocks, cor-               computed as follows:
+relations among transaction data are more stable and explicit, and more
+suitable for stock prediction.                                                          
+
+    Therefore, in this study, stock transaction data are viewed through                                                                                            (7)
+a graph-based perspective, where nodes represent individual transac-               = 
+tion data, and edges signify hidden dependencies between these data.
+Consistent with the approach in prior literature (Ma et al., 2024), this                =1
+paper employs both the Pearson correlation coefficient and Spearman's
+Rank correlation coefficient between transaction data to construct syn-               GCN is a deep learning model specifically designed to model and
+chronous correlation graphs. In addition, it calculates Dynamic Time              learn from non-regular graph data, and the core idea is to update the
+Warping (DTW) between transaction data to construct asynchronous                  representation of a node by aggregating its neighbor information. This
+correlation graphs. By combining multiple graphs, the correlations                aggregation operation resembles the filtering operation in traditional
+among the transactional data can be represented more comprehen-                   convolutional neural networks but relies on the graph's topology rather
+sively. Specifically, for each type of relation   , a weighted                    than a grid structure. Specifically, GCN calculates a weighted average
+undirected graph  = ( , ) is constructed, with each node                          of each node's features with those of its neighbors to obtain an updated
+representing one type of transaction data. The graph  is built from               node representation. This weighted averaging process can be realized
+the adjacency matrix  = ( )× , where  denotes the strength of                     through matrix operations. To simplify graph convolution, GCN com-
+the correlation between the th and th transaction data.                           monly employs a local first-order approximation, computed at each
+                                                                                  layer as follows:
+    Pearson correlation coefficient is a statistical measure that quan-
+tifies the linear relationship between two series, while Spearman's                +1   =           (-  1  -   1       )                                           (8)
+Rank correlation coefficient assesses the strength of the monotonic                                     2      2
+relationship between stock price series. To calculate Spearman's Rank                                                  
+correlation coefficient, the series are sorted in ascending order and
+assigned ranks. For a sample size of n, Pearson's correlation coefficient         where  =  + , the diagonal array  represents the degree matrix
+and Spearman's Rank correlation coefficient are calculated as follows:
+                                                                                  with      =       ( ) ,     denotes     the  node  vector   of  the  th  layer,   0  is
+
+                                                                                                  
+
+                                                                                  the input matrix, and   is the training weight for the respective layer.
+
+                                                                                  To    simplify    notation,     define       =  -  1  -  1  .  With  this  definition,
+                                                                                                                                     2     2
+
+                                                                                  each layer of graph convolution can be expressed as:
+
+                                                                                  +1 =  ( )                                                                        (9)
+
+ ( ,  ) =   [( -  ) ( -  )]                           )2  (4)                         Multi-GCN facilitates the generation of node embeddings that incor-
+                                   )2                                             porate node attributes and topology, enabling the subsequent modeling
+                        (     -               (  -                                of temporal dependencies in the data.
+
+                    =1                    =1
+
+  ( ,   )  =  1  -  6         2                           (5)                     3.6. Gated recurrent unit
+
+                          =1
+
+                    (2 - 1)
+
+where  and  are the mean values of sequences  and  , respec-                          Temporal dependencies of stock are crucial to achieving precise
+tively;  is the length of the sequence, and  is the rank difference               stock price predictions. Consequently, this study incorporates Gated
+between  and .                                                                    Recurrent Units (GRUs) to model the temporal dependencies of node
+                                                                                  embeddings. GRUs are a variant of Recurrent Neural Networks (RNNs)
+    DTW is an algorithm that measures the similarity between two                  used to process sequential data and model temporal dependencies. In
+                                                                                  comparison to conventional RNNs, GRUs introduce a gating mechanism
+time series by aligning them to find the best alignment. Asynchronous             designed to improve the modeling of long-term dependencies and miti-
+                                                                                  gate the issue of vanishing gradients. The design of GRU is based on the
+correlation graphs between time series can be constructed using DTW               Long Short-Term Memory (LSTM) model, which simplifies the structure
+                                                                                  of LSTM and reduces the number of parameters while retaining similar
+on transaction data. However, the classical DTW algorithm has high                modeling capabilities. A pivotal feature of GRUs is the inclusion of two
+                                                                                  gating units: the reset gate and the update gate.
+time complexity and is unsuitable for large-scale data. Therefore, in
+                                                                                      The reset gate governs how the current moment's inputs are blended
+this study, we employ the FastDTW algorithm (Salvador & Chan, 2007),              with the hidden state from the previous time step. By incorporating
+                                                                                  the reset gate, GRUs possess the capability to selectively disregard
+an approximation of DTW, to replace the traditional DTW algorithm.                the previous hidden state, thereby enhancing their capacity to handle
+                                                                                  long-term dependencies. The update gate regulates the retention of the
+Additionally, we normalize the results to facilitate their combination            previous time step's hidden state. It dictates the trade-off between pre-
+                                                                                  serving the prior moment's hidden state and incorporating the current
+with graphs  and . Denoting the FastDTW algorithm as   (),                        moment's candidate hidden state. The update gate dynamically learns
+the correlation coefficient is calculated as follows:                             to selectively update and convey information, thereby aiding the model
+                                                                                  in capturing essential sequence features.
+   ( ,  )     =  1-      ( ,  )                           (6)
+                                                                                      The computational process of a GRU unit is articulated as follows:
+
+3.5. Multi-graph convolutional network
+
+    Graph Convolutional Networks (GCNs), as one of the common                      =  (   +   -1 + )                                                               (10)
+models for capturing relationships, have been used in many studies in
+stock prediction. To capture the correlation between transaction data              =  (   +   -1 + )                                                               (11)
+more completely and comprehensively, this paper introduces a Multi-
+Graph Convolutional Network (Multi-GCN). The schematic diagram                     =  (   + (  -1) + )                                                             (12)
+of Multi-GCN is illustrated in Fig. 2. From the diagram, it becomes
+evident that synchronous correlations exist among the open price,                  = (1 - )-1 +                                                                    (13)
+close price, the high price, and the low price. However, their changes
+are occasionally asynchronous with variations in trading volume. The              where  represents the sigmoid function,  and  correspond to the
+Multi-GCN integrates multiple generated graphs into a unified graph,              reset gate and update gate, respectively. -1 and  denote the hidden
+subsequently employing a graph convolutional network to investigate
+and capture latent relationships among transaction data from diverse
+perspectives. This approach facilitates a comprehensive analysis of the
+complex relationships among transaction data. Given that the graphs
+ ,  and   , generated by the graph generation component,
+tend to be sparse, these graphs are densified and fused into a composite
+
+                                                                               5
+D. Ma and D. Yuan                                                                                                      Expert Systems With Applications 250 (2024) 123948
+
+                                         Fig. 2. Schematic diagram of multi-graph convolutional network.
+
+Table 2                    Dataset Train Valid Test Total Feature                     Stock      Error (MSE) loss and incorporate a regularization term for trend con-
+Features of the datasets.                                                     number  number     sistency. Regularizing the MSE loss diminishes the model's sensitivity
+                                                                                                 to noise and outliers, concurrently enhancing control over the average
+  Begin date End date                                                                 40         forecast errors. The introduction of a regularization term encour-
+                                                                                      28         ages the model to acquire smoother prediction functions, effectively
+4/1/2021  29/12/2023       SSE   508 72  145 726 6                                               mitigating the risk of overfitting. Additionally, introducing an L1 regu-
+                           DJIA  526 75  150 752 9                                               larization term for trend accuracy can better capture stock price trend
+                                                                                                 changes. This regularization term incentivizes the model to predict
+layer state at time  - 1 and the node embedding of the inputs at                                 accurate price trends, thereby elevating the overall quality of stock
+time , respectively.  represents the candidate for storing the input                             price prediction by penalizing incorrect trend predictions.
+values, and  denotes the Hadamard product. The symbols  ,  , and
+ represent weight matrices and a bias vector, respectively.                                          The ultimate loss function encompasses both the regularization term
+                                                                                                 for the MSE loss and the regularization term for trend accuracy. We
+3.7. Regularization loss                                                                         employ a trade-off coefficient to calibrate the relative significance of
+                                                                                                 these two regularization components, tailoring them to the specific
+    In stock price prediction, both numerical precision and trend ac-                            requirements of various application scenarios. This approach enables
+curacy hold significant importance. Numerical precision gauges the                               us to strike a harmonious balance between the precision of numerical
+disparity between predicted and actual values, while trend consistency                           predictions and the consistency of price trend forecasts in stock price
+assesses the ability to forecast price movement directions. The precision                        prediction, thereby enhancing the overall performance of the model.
+of stock price forecasts plays a pivotal role in shaping investment                              The ultimate loss function can be expressed as follows:
+outcomes. A substantial deviation between predicted and actual val-
+ues can lead to erroneous investment decisions and financial losses.                                  1  
+Furthermore, grasping market trends is crucial. Stock market price                                    
+movements tend to exhibit certain trends, such as upward or downward                               =             - )2          (14)
+movements. Effectively capturing these trends aids investors in devising                                     (
+strategic trading approaches and enhancing their investment returns.
+Focusing solely on minimizing numerical precision may result in a                                        =1
+model that predominantly predicts absolute price values, potentially
+overlooking the directional trends in price movements. Conversely, an                             = 1( )  () + 1( )  (( - -1)  (15)
+excessive emphasis on trend consistency might disregard specific price                              - ( - -1))
+values, potentially causing missed investment opportunities. Conse-
+quently, it is imperative to strike a balance between numerical precision                        where  represents the true stock price,  denotes the predicted stock
+and trend consistency.                                                                           price,  signifies the total number of samples,  and  are
+                                                                                                 regularization coefficient.
+    To achieve an equilibrium between numerical precision and trend
+accuracy, we introduce L1 regularization measures to the Mean Squared                            4. Experiments
+
+                                                                                                     This section encompasses the experimental setup, results, and subse-
+                                                                                                 quent analysis. Specifically, Section 4.1 furnishes detailed information
+                                                                                                 regarding the dataset employed, while Section 4.2 expounds upon the
+                                                                                                 comprehensive experimental setup. Section 4.3 effectively showcases
+                                                                                                 the predictive performance of the proposed method in contrast to the
+
+                                                                                              6
+D. Ma and D. Yuan                                                                                                      Expert Systems With Applications 250 (2024) 123948
+
+Table 3                                                                       4.2.2. Evaluation metrics
+Stock codes included in the datasets.
+                                                                                 In this paper, the prediction accuracy of the model is assessed using
+  SSE 600000 600015 600016
+              600050 600104 600111     600018  600028  600036  600048         commonly employed metrics, including Accuracy (ACC), R-squared
+              600887 601006 601088     600585  600637  600795  600837
+              601288 601318 601328     601166  601169  601186  601211         (2), Root Mean Square Error (RMSE), Mean Absolute Error (MAE), and
+              601668 601669 601688     601336  601398  601601  601628
+              601901 601985 601988     601766  601800  601818  601857         Mean Absolute Percentage Error (MAPE). These metrics are calculated
+                                       601989  601998
+                                                       CRM     CSCO           as follows:
+                                       BA      CAT     IBM     INTC
+DJIA  AAPL         AMGN BA             HD      HON     MRK     MSFT            =                                            (17)
+      CVX                              MCD     MMM     VZ      WBA                          
+      JNJ          DIS    GS           UNH     V
+      NKE
+      WMT          JPM    KO                                                                       (   - )2
+
+                   PG     TRV                                                 2  =  1-     =1                               (18)
+                                                                                                                            (19)
+                                                                                                   (   -  )2                (20)
+                                                                                                                            (21)
+                                                                                           =1
+
+                                                                                           
+                                                                                            
+                                                                                                1
+                                                                                                       (          )2
+                                                                                           
+                                                                                       =                      -
+
+baseline model. An in-depth scrutiny of the model components' influ-                               =1
+ence on prediction performance is presented through an ablation study
+in Section 4.4. Furthermore, Section 4.5 delves into the examination of                 1     
+the model's sensitivity to hyperparameters. Lastly, Section 4.6 conducts                
+a trading simulation to evaluate the effectiveness of the proposed                  =                 -  |
+approach.                                                                                      |           |
+                                                                                               |
+
+                                                                                           =1
+
+                                                                                           1       |     -       |
+                                                                                                                 |
+                                                                                              
+
+                                                                                       =           |                ×  100
+
+                                                                                            |                    |
+                                                                                             =1 |                |
+
+4.1. Dataset description                                                      where  represents the true stock price,  denotes the predicted stock
+                                                                              price,  is the average of the true stock prices,  signifies the total
+    To assess the efficacy of the proposed methodology, experimen-
+tal evaluations were conducted utilizing two authentic stock market           number of samples, and  stands for the number of samples with
+datasets obtained from Ref. Liu, Ma et al. (2022). The particulars of         correctly predicted trends.
+these datasets are delineated below.
+(a) SSE Dataset: This dataset encompasses daily transaction data span-            In general, higher values of ACC and 2, as well as lower values
+ning from January 4, 2021, to December 29, 2023, encompassing stocks
+within the SSE 50 index in the Chinese market. It includes nine cate-         of RMSE, MAE, and MAPE, indicate superior predictive performance of
+gories of transaction data: opening price, closing price, high price, low
+price, rounded closing price, gain/loss, true gain/loss, trading volume,      the model.
+and turnover. Access to this dataset is facilitated through Tushare.
+(b) DJIA Dataset: This dataset encapsulates daily transaction data for        4.2.3. Baseline methods
+stocks listed in the Dow Jones Industrial Average within the U.S.                 To assess the forecasting performance of the proposed method, a
+market, spanning from January 4, 2021, to December 29, 2023. It
+encompasses six types of transaction data: opening price, closing price,      comparative analysis was conducted with several established methods,
+high price, low price, rounded closing price, and trading volume. The         including ARIMA, GRU, PF-LSTM, GCGRU, CEEMDAN-BiLSTM, SCINet,
+dataset is obtainable from Yahoo Finance.                                     StemGNN, Dlinear, Fedformer, N-hits, WaveForM, FourierGNN and
+                                                                              VGC-GAN. These methods are described as follows:
+    In order to uphold the integrity and precision of our results, stocks
+featuring incomplete price data and outliers were systematically ex-               · ARIMA (Salvador & Chan, 2007): ARIMA, a classical time series
+cluded from the analytical framework. Subsequently, the datasets un-                 forecasting method, combines the concepts of autoregression (AR)
+derwent meticulous partitioning into training, validation, and test sets,            and moving average (MA) to analyze and forecast trends and
+adhering to a prescribed ratio of 7:1:2. A detailed breakdown of this                seasonal variations in time series data.
+dataset division is outlined in Table 2.
+                                                                                   · GRU (Chung et al., 2014): GRU, a variant of RNNs with a gating
+    The datasets consist of a range of stock symbols covering the period             mechanism, effectively resolves the vanishing or exploding gradi-
+from January 4, 2021, to December 29, 2023. A comprehensive list of                  ent issue in handling long-term dependencies. GRU is commonly
+these stock symbols is presented in Table 3. Throughout the specified                employed for stock forecasting.
+timeframe, the SSE dataset encompasses 40 ticker symbols, while the
+DJIA dataset includes 28 ticker symbols.                                           · PF-LSTM (Ma et al., 2020): PF-LSTM combines RNNs and particle
+                                                                                     filtering by learning potential particle belief representations and
+4.2. Experimental setup                                                              updating them using particle filters. In this paper, PF-LSTM serves
+                                                                                     as a direct alternative to LSTM.
+4.2.1. Data preprocessing
+    To minimize the influence of noise, the dataset underwent Min-Max              · GCGRU (Yin et al., 2021): GCGRU integrates GCNs and GRUs.
+                                                                                     It constructs a stock relationship graph by calculating Pearson
+normalization utilizing the following normalization formula:                         correlation coefficients from historical stock data and extracts
+                                                                                     features from the price of each stock and the prices of those highly
+ =  - ()                                                       (16)                  similar stocks in the graph using GCNs. Subsequently, a sequence
+() - ()                                                                              of these extracted features is fed into a GRU model to capture
+                                                                                     temporal dependence.
+    To prevent any compromise to model credibility arising from the
+data leakage issue, a distinct sequence decomposition and normaliza-               · CEEMDAN-BiLSTM (Lin et al., 2022): The CEEMDAN-LSTM
+tion process was carried out for both the training set and the test                  model integrates LSTM and complete ensemble empirical mode
+set. Furthermore, inverse normalization was applied before computing                 decomposition with adaptive noise (CEEMDAN) for forecasting
+the evaluation metrics to ensure that the data provides a realistic                  the Realized Volatility (RV) of the CSI300, S&P500, and STOXX50
+assessment of model performance and quantifies the difference between                indices. In this study, BiLSTM serves as an upper-level substitute
+predicted and actual values.                                                         for LSTM, contributing to enhanced model performance.
+
+                                                                                   · SCINet (Liu, Zeng et al., 2022): SCINet utilizes a hierarchical
+                                                                                     downsampling-convolution-interaction structure equipped with a
+                                                                                     diverse set of convolutional filters. It iteratively extracts and
+                                                                                     exchanges information at various temporal resolutions, enhancing
+                                                                                     predictability through efficient representations.
+
+                                                                           7
+D. Ma and D. Yuan                                                                            Expert Systems With Applications 250 (2024) 123948
+
+     · StemGNN (Liu, Zeng et al., 2022): StemGNN is a multivariate             Table 4                              Stock code  
+       time series forecasting model that amalgamates Graph Fourier            Optimal VMD parameters in datasets.
+       Transform (GFT) and Discrete Fourier Transform (DFT) to capture
+       inter-series correlations and temporal dependencies. Leveraging           Dataset Stock code   Stock code  
+       convolution and sequential learning modules, StemGNN effec-
+       tively predicts spectral representations, autonomously learning         SSE   600000  3 296 600887  3 315 601628  3 310
+       inter-series correlations without predefined priors.                    DJIA  600015  3 331 600958  4 387 601668  3 347
+                                                                                     600016  3 331 601006  4 298 601669  3 313
+     · DLinear (Zeng et al., 2023): DLinear decomposes time series                   600018  4 371 601088  4 311 601688  4 391
+       into trend and cosine components and subsequently employs                     600028  4 336 601166  4 293 601766  3 380
+       two single-layer linear networks to model these components for                600036  4 404 601169  4 308 601800  3 334
+       forecasting.                                                                  600048  4 373 601186  3 344 601818  3 355
+                                                                                     600050  3 305 601211  3 299 601857  3 335
+     · Fedformer (Zhou et al., 2022): Fedformer merges the Trans-                    600104  4 339 601288  4 302 601901  4 307
+       former with seasonal trend decomposition methods for time series              600111  4 402 601318  3 330 601985  4 372
+       analysis, offering linear time complexity, making it more efficient           600585  3 367 601328  3 307 601988  4 292
+       than Transformer.                                                             600637  3 314 601336  3 292 601989  4 300
+                                                                                     600795  4 575 601398  3 306 601998  4 360
+     · N-hits (Challu et al., 2022): N-hits extends the N-BEATS model                600837  4 376 601601  3 415
+       to enhance forecasting accuracy and computational efficiency.                 AAPL    3 417 HD      4 334 MSFT    3 314
+       Techniques such as hierarchical interpolation and multi-rate data             AMGN    4 415 HON     3 422 NKE     3 357
+       sampling contribute to these improvements.                                    AXP     3 336 IBM     4 304 PG      4 366
+                                                                                     BA      4 389 INTC    4 346 TRV     4 317
+     · WaveForM (Yang et al., 2023): WaveForM presents an end-to-end                 CAT     4 342 JNJ     4 324 UNH     4 305
+       framework for multivariate time series prediction. It combines                CRM     3 339 JPM     2 337 V       4 386
+       discrete wavelet transform with graph construction and utilizes               CSCO    3 327 KO      2 331 VZ      4 353
+       a graph-enhanced prediction module featuring expansion convo-                 CVX     4 602 MCD     4 306 WBA     3 334
+       lution and graph convolution to capture correlations and predict              DIS     3 345 MMM     4 372 WMT     4 324
+       wavelet coefficients at different levels.                                     GS      4 348 MRK     4 310
+
+     · FourierGNN (Yi et al., 2023): Addressing the challenge of multi-        datasets. The proposed method achieves superior values in all assessed
+       variate time series prediction, FourierGNN treats each sequence         metrics, with significant improvements in ACC and 2 by more than
+       value (irrespective of variable or timestamp) as a graph node.          15% and 10%, respectively. Furthermore, the RMSE, MAE, and MAPE
+       It directly applies a graph network to capture inter-sequence dy-       exhibit reductions exceeding 40% when compared to the sub-optimal
+       namics and intra-sequence correlations. The model introduces the        method. These outcomes underscore the effectiveness, robustness, and
+       concept of hypervariable graphs and utilizes the Fourier Graph          strong adaptability of the proposed method.
+       Operator (FGO) to perform matrix multiplication in Fourier space.
+                                                                               4.4. Ablation studies
+     · VGC-GAN (Ma et al., 2024): The VGC-GAN model employs a
+       multi-graph convolutional adversarial framework to predict stock            To explore the impact of different modules on model prediction
+       prices by generating multiple correlation graphs from historical        performance, the proposed method underwent modifications, resulting
+       stock data, comprehensively capturing inter-stock correlations. It      in nine variants. Table 6 outline the performance of these variants
+       combines a multi-graph convolutional network and GRU within a           alongside the proposed model, maintaining consistent experimental
+       Generative Adversarial Network (GAN) framework, trained with            configurations across all approaches.
+       a CNN to explore hidden correlations between stocks and time de-
+       pendence. Additionally, the model incorporates VMD to mitigate              Among these variants, Methods 1, 2, 3, and 4 employed EMD,
+       the impact of noise.                                                    EEMD, CEEMDAN, and SSA, respectively, instead of VMD for sequence
+                                                                               decomposition. These methods share identical components and param-
+4.2.4. Parameter settings                                                      eters with the proposed approach, with the exception of their distinct
+    In this experimental study, a series of trials were conducted to           decomposition algorithms. Notably, all methods incorporate the use
+                                                                               of maximum­minimum normalization. The decomposition algorithms
+determine the most effective hyperparameters. Following evaluation,            employed in the comparative methods are elucidated below:
+the optimal configuration was identified, and the selected hyperparam-         1. Empirical Mode Decomposition (EMD):
+eters for the subsequent experiments are as follows: a learning rate
+of 0.008, 100 epochs, a batch size of 128, a sliding window length                 EMD is a data-driven technique designed to decompose a given
+() set to 30, and regularization coefficients (MSE and ACC) assigned           time series into intrinsic mode functions (IMFs) based on local data
+values of 0.01 and 0.1, respectively. The optimal values for the sliding       characteristics. Each IMF signifies a narrowband oscillatory component
+window length () and the regularization coefficients (MSE and ACC)             with varying scales. EMD has garnered widespread adoption across
+are comprehensively discussed in Section 4.5, providing insights into          diverse domains, including signal processing and time series analysis.
+the careful selection process that led to their determination. For the         2. Ensemble Empirical Mode Decomposition (EEMD):
+application of VMD in this study, the optimal parameters ( and )
+specific to the SSE and DJIA datasets are presented in Table 4.                    An extension of EMD, EEMD addresses issues such as mode mixing
+                                                                               and end effects by introducing noise to the original data. Multiple
+4.3. Performance analysis                                                      EMD decompositions are performed on the noisy realizations, and the
+                                                                               resulting IMFs are averaged to mitigate mode mixing, thus enhancing
+    To assess the effectiveness of the proposed method, a comparative          the overall decomposition results.
+analysis was conducted with a baseline approach utilizing the same             3. Complete Ensemble Empirical Mode Decomposition with Adaptive
+dataset. The corresponding results are presented in Table 5, while             Noise (CEEMDAN):
+Fig. 3 provides a visual representation of the comparative predictive
+performance between the proposed method and the baseline methods.                  Building upon the EEMD framework, CEEMDAN further refines the
+                                                                               approach by adaptively determining the noise level for each ensemble
+    Upon careful examination of the data in Table 5, along with insights       realization. This adaptive noise inclusion contributes to a more pre-
+derived from Fig. 3, it is evident that the proposed model consis-             cise decomposition by diminishing mode mixing and preserving the
+tently demonstrates robust performance across all time periods in both         intrinsic properties of the data.
+                                                                               4. Singular Spectrum Analysis (SSA):
+
+                                                                            8
+D. Ma and D. Yuan                                                                                  Expert Systems With Applications 250 (2024) 123948
+
+Table 5
+Predictive performance of the proposed method and baseline methods. Results with bold are the best performance.
+
+                   Method          SSE                                           DJIA
+
+                                   ACC     2         RMSE MAE           MAPE     ACC     2         RMSE          MAE                          MAPE
+
+                   ARIMA           0.5036  -5.1041   1.3242  1.0976     9.972%   0.5007  -2.5318   16.3622       13.4835                      8.475%
+                   GRU             0.5097  -2.0921   0.7328  0.5913     5.076%   0.4664  -2.2375   15.8586       14.1495                      5.665%
+                   PF-LSTM         0.5906  0.5777    0.3704  0.2964     2.023%   0.5783  0.5692    4.5564        3.8222                       2.905%
+                   GCGRU           0.4937  0.5594    0.3149  0.2557     1.774%   0.4628  -42.4816  69.8978       68.8906                      26.320%
+                   CEEMDAN-BiLSTM  0.5916  0.6838    0.2825  0.2289     1.654%   0.5581  0.3065    6.2354        4.9513                       2.831%
+                   SCINet          0.5171  -1.7009   0.7886  0.6326     4.941%   0.4775  -29.1912  43.7255       42.5843                      23.947%
+                   StemGNN         0.5179  -2.9559   0.8587  0.7589     5.785%   0.4932  -0.4291   5.9429        4.8690                       4.464%
+                   DLinear         0.4990  0.8365    0.2547  0.1924     1.420%   0.5307  0.8727    2.7149        2.3394                       1.521%
+                   FEDformer       0.4841  -0.2689   0.5150  0.4044     3.462%   0.4803  0.3743    5.5055        4.4107                       3.049%
+                   N-hits          0.5164  -8.6022   2.8734  2.6278     28.753%  0.4927  -5.0808   20.5275       17.5930                      10.557%
+                   WaveForm        0.4772  -23.7399  1.7128  1.5182     12.539%  0.4818  -3.3862   55.3529       53.5810                      57.897%
+                   FourierGNN      0.4884  -1.2027   0.9438  0.8208     5.667%   0.4683  -1.4609   14.6036       12.2370                      7.221%
+                   VGC-GAN         0.5936  0.5601    0.2569  0.1894     1.409%   0.5815  0.7715    2.6791        2.0497                       1.216%
+                   Proposed        0.6940  0.9226    0.1500  0.1137     0.843%   0.7311  0.9652    1.6082        1.2206                       0.714%
+
+                              Fig. 3. Comparative graph of predictive performance between the proposed method and selected baseline methods.
+
+Table 6
+Ablation comparison. Results with bold are the best performance.
+
+                   Method     SSE                                                DJIA
+
+                              ACC       2       RMSE         MAE        MAPE     ACC     2         RMSE          MAE                          MAPE
+
+                   Method 1   0.6861    0.9290  0.1542       0.1170     0.848%   0.7277  0.9694    1.6771        1.2287                       0.731%
+                   Method 2   0.6849    0.9224  0.1612       0.1190     0.854%   0.7158  0.9461    1.6535        1.2485                       0.719%
+                   Method 3   0.7038    0.9257  0.1582       0.1172     0.850%   0.7125  0.9600    1.6230        1.2147                       0.715%
+                   Method 4   0.6824    0.9277  0.1507       0.1140     0.866%   0.7266  0.9681    1.6671        1.2164                       0.716%
+                   Method 5   0.6862    0.9155  0.1595       0.1190     0.894%   0.7213  0.9594    1.6540        1.2469                       0.753%
+                   Method 6   0.6543    0.9033  0.1668       0.1260     0.946%   0.7057  0.9582    1.7480        1.3552                       0.805%
+                   Method 7   0.6603    0.9027  0.1690       0.1301     0.992%   0.7025  0.9581    1.7898        1.3821                       0.802%
+                   Method 8   0.6836    0.9246  0.1500       0.1137     0.843%   0.7277  0.9619    1.6721        1.2617                       0.769%
+                   Method 9   0.6647    0.9129  0.1615       0.1254     0.92%    0.7152  0.9602    1.6653        1.2748                       0.827%
+                   Method 10  0.6795    0.9225  0.1595       0.1179     0.873%   0.7034  0.9605    1.7503        1.3207                       0.779%
+                   Proposed   0.6940    0.9226  0.1500       0.1137     0.843%   0.7311  0.9652    1.6082        1.2206                       0.714%
+
+    SSA is a nonparametric time series decomposition method that           algorithms exhibited improved performance. Notably, the method em-
+dissects a given time series into the sum of its principal components.     ploying the VMD algorithm achieved the best performance. This un-
+It entails constructing a trajectory matrix from the time series and       derscores the significance of sequence decomposition algorithms in
+employing singular value decomposition (SVD) to extract the princi-        mitigating data non-stationarity and noise, consequently enhancing
+pal components. SSA is renowned for its efficacy in extracting trend,      predictive model performance. VMD emerged as the most suitable and
+periodic, and noise components from time series data.                      robust choice among decomposition algorithms.
+
+    Method 5 excluded the use of a sequence decomposition algorithm.       (2) In contrast to Methods 6, 7, 8, and 9, which either employed
+Methods 6, 7, and 8 replaced the Multi-GCN with a GCN and utilized         single graphs or excluded the use of graph convolutional networks, the
+Pearson correlation plot  , Spearman's Rank correlation plot ,             method employing multi-graph convolutional networks demonstrated
+and DTW correlation graph   , respectively, instead of generating          superior performance across both datasets. This validates the effective-
+graph  . Method 9 eliminated the GCN and integrated a GRU model            ness of graph convolutional networks, highlighting that multi-graph
+for multivariate prediction, while Method 10 adopted MSE as the loss       convolutional networks can capture more concealed relationships by
+function.                                                                  amalgamating multiple graphs, resulting in substantial performance
+                                                                           improvements.
+    Drawing insights from Table 6, the following conclusions emerge:
+                                                                           (3) The proposed method outperformed Method 9, which utilized MSE
+(1) Comparative to Method 5, which omitted the use of a sequence           as the loss function, exhibiting higher ACC and improvements in error
+decomposition algorithm, the methods incorporating decomposition
+
+                                                                        9
+D. Ma and D. Yuan                                                                           Expert Systems With Applications 250 (2024) 123948
+
+                                   Fig. 4. Performance of different  and  on the datasets.
+
+Table 7                                                                                    Subfigures (a) and (b) pertain to the model's performance on the DJIA
+Predictive performance of different sliding window lengths. Results with bold are the      dataset, while subfigures (c) and (d) relate to its performance on the
+best performance.                                                                          SSE dataset. The experimental results demonstrate that an appropriate
+                                                                                           combination of these coefficients can significantly improve the model's
+Dataset             = 7     = 15  = 30      = 45  = 60                                     predictive performance. However, when these coefficients are set to
+                                                                                           excessively high or excessively low values, it can have a detrimental
+SSE      ACC       0.6802  0.6901  0.6940  0.6797  0.6733                                  effect on the model. Consequently, it is crucial to select appropriate
+DJIA     2         0.9398  0.9289  0.9226  0.9299  0.9145                                  regularization term coefficients based on empirical observations. In this
+         RMSE      0.1600  0.1562  0.1500  0.1531  0.1550                                  study, a parameter combination employing an  of 0.01 and an
+         MAE       0.1214  0.1175  0.1137  0.1161  0.1144                                   of 0.1 was utilized.
+         MAPE      0.888%  0.865%  0.843%  0.844%  0.867%
+         ACC       0.7183  0.7256  0.7311  0.7160  0.7092                                  4.6. Trading simulation
+         2         0.9650  0.9665  0.9652  0.9646  0.9571
+         RMSE      1.6895  1.6397  1.6082  1.5671  1.6028
+         MAE       1.2885  1.2504  1.2206  1.2024  1.2510
+         MAPE      0.747%  0.729%  0.714%  0.721%  0.757%
+
+metrics such as RMSE. This underscores the effectiveness of balanc-                            To comprehensively assess the effectiveness of our model, we con-
+ing numerical precision with trend accuracy, leading to substantial                        ducted an experiment employing data from October to December 2023
+enhancements in prediction performance.                                                    to simulate stock investments. Concurrently, we compared our ap-
+(4) Each module significantly contributed to enhancing model predic-                       proach with the baseline method outlined in Section 4.2.3. The esti-
+tive performance, with the removal of any module potentially resulting                     mated trading strategy operates on a daily frequency basis. Within the
+in subpar outcomes.                                                                        simulation, we established a trading strategy based on our framework's
+                                                                                           predictions. This strategy involves computing a score by aggregating
+4.5. Analysis of hyperparameters                                                           the difference between the predicted closing price and the previous
+                                                                                           day's closing price, in conjunction with the accuracy of the past 
+    Table 7 illustrates the impact of varying sliding window lengths                       days. Based on this score, we make investment decisions: we invest
+() on model performance. The data indicates that the model achieves                        in the top  stocks with the highest scores and hold them for one
+its highest prediction performance when  is set to 30. Notably, if                         day. Alternatively, we refrain from investing in a stock if the predicted
+ is too small, the model's performance diminishes, likely because                          value is lower than the previous day's closing price. Fig. 5 depicts the
+there is an insufficient amount of data available for the model to                         net worth curves of all models over the simulation period. As shown
+extract meaningful features. Conversely, if  is excessively large, the                     in Fig. 5, our proposed method consistently exhibits optimality and
+model's performance experiences a significant decline. This drop in                        robustness on both datasets, with a reduction in returns observed for
+performance may be attributed to the heightened volatility of stock                        both datasets after transitioning to the Mean Squared Error (MSE) loss
+data, as an extended period results in increased data noise.                               function.
+
+    Fig. 4 illustrates the impact of different regularization term co-                         Furthermore, Fig. 6 illustrates the cumulative profit curves for
+efficients, specifically  and  , on the model's performance.                               various alternative trading strategies. Subfigures (a) and (b) represent
+                                                                                           the trading strategy following Liu, Ma et al. (2022), which involves
+
+                                                                                       10
+D. Ma and D. Yuan                                                                     Expert Systems With Applications 250 (2024) 123948
+
+                   Fig. 5. Cumulative profit curves of the proposed method and baseline methods under the proposed trading strategy.
+
+                   Fig. 6. Cumulative profit curves of different trading strategies.
+
+investing, on average, in all stocks predicted to experience an increase       optimizing returns and managing risk, this study opts for setting  at 3
+in stock price, holding them, and selling when the predicted stock price       and  at 10.
+decreases. Subfigures (c) and (d) depict a trading strategy referencing
+the stock recommendation system (Ma et al., 2022), where we select             5. Conclusion
+the top  stocks and invest in them on an average basis, holding them
+for one day. The results underscore the suitability of our proposed                This paper introduces a regularized ensemble framework with graph
+trading strategy for stock price prediction, showcasing its ability to         convolutional networks for stock price prediction. The proposed
+achieve higher cumulative profits and effectively highlight performance        method comprises several key components. Firstly, it decomposes the
+disparities among different stock price prediction methods.                    original stock price sequence by utilizing Variational Mode Decomposi-
+                                                                               tion (VMD). This decomposition yields subsequences with distinct time
+    Fig. 7 depicts the influence of different values of  and                   scales, thereby reducing the inherent instability of stock price data
+on cumulative profits. In practical stock market trading, diversifying         and mitigating the influence of noise on model performance. Subse-
+investments across multiple stocks is a common strategy to mitigate            quently, separate relationship graphs are constructed for each of these
+risks. Specifically, when considering investment in multiple stocks with       subsequences, with hidden dependencies between nodes being learned
+varying values of  (i.e., 3, 5, and 7), the highest return is achieved         through a multi-graph convolutional network. Following this, Gated
+when  is set to 10. Smaller values of  result in fewer stocks being            Recurrent Units (GRUs) are employed to model the temporal depen-
+invested, potentially leading to higher returns, but also correspondingly      dencies of node embeddings and make predictions regarding the future
+increasing investment risk. Conversely, when larger values of  are             closing prices of these subsequences. Finally, the predicted values for
+chosen, the potential cumulative profits are reduced, but the associated       each subsequence are amalgamated to forecast the future closing price
+investment risk is also diminished. Thus, to strike a balance between
+
+                                                                           11
+D. Ma and D. Yuan                                                                             Expert Systems With Applications 250 (2024) 123948
+
+                   Fig. 7. The impact of different  and  on cumulative profit.
+
+of the original sequence. To balance numerical precision and trend                            Chen, Y., Wu, J., & Wu, Z. (2022). China's commercial bank stock price prediction
+accuracy, a regularization term is introduced into the loss function.                              using a novel K-means-LSTM hybrid approach. Expert Systems with Applications, 202,
+Empirical experiments conducted on real datasets demonstrate that the                              Article 117370.
+proposed approach yields promising predictive performance and results
+in higher returns in trading simulations.                                                     Cheng, C.-H., & Wei, L.-Y. (2014). A novel time-series model based on empirical mode
+                                                                                                   decomposition for forecasting TAIEX. Economic Modelling, 36, 136­141.
+    In future research, we intend to further enhance our model by
+incorporating additional data sources such as news, tweets, and others                        Chung, J., Gulcehre, C., Cho, K., & Bengio, Y. (2014). Empirical evaluation of gated
+to capture market dynamics better. Moreover, we plan to extend the                                 recurrent neural networks on sequence modeling. arXiv preprint arXiv:1412.3555.
+applicability of this method to other time series forecasting tasks,
+including but not limited to traffic flow forecasting, electricity demand                     Cui, C., Li, X., Zhang, C., Guan, W., & Wang, M. (2023). Temporal-relational hyper-
+forecasting, and wind energy forecasting.                                                          graph tri-attention networks for stock trend prediction. Pattern Recognition, Article
+                                                                                                   109759.
+CRediT authorship contribution statement
+                                                                                              Cui, C., Wang, P., Li, Y., & Zhang, Y. (2023). McVCsB: A new hybrid deep learn-
+    Dongbo Ma: Conceptualization, Methodology, Software, Valida-                                   ing network for stock index prediction. Expert Systems with Applications, 232,
+tion, Writing ­ original draft. Da Yuan: Conceptualization, Methodol-                              Article 120902. http://dx.doi.org/10.1016/j.eswa.2023.120902, URL https://www.
+ogy, Validation, Writing ­ review & editing.                                                       sciencedirect.com/science/article/pii/S0957417423014045.
+
+Declaration of competing interest                                                             Deng, C., Huang, Y., Hasan, N., & Bao, Y. (2022). Multi-step-ahead stock price index
+                                                                                                   forecasting using long short-term memory model with multivariate empirical mode
+    The authors declare that they have no known competing finan-                                   decomposition. Information Sciences, 607, 297­321.
+cial interests or personal relationships that could have appeared to
+influence the work reported in this paper.                                                    Dragomiretskiy, K., & Zosso, D. (2013). Variational mode decomposition. IEEE
+                                                                                                   Transactions on Signal Processing, 62(3), 531­544.
+Data availability
+                                                                                              Dudukcu, H. V., Taskiran, M., Taskiran, Z. G. C., & Yildirim, T. (2023). Temporal
+    Data will be made available on request.                                                        convolutional networks with RNN approach for chaotic time series prediction.
+                                                                                                   Applied Soft Computing, 133, Article 109945.
+Acknowledgments
+                                                                                              Feng, S., Xu, C., Zuo, Y., Chen, G., Lin, F., & XiaHou, J. (2022). Relation-aware dynamic
+    The authors would like to thank all the anonymous reviewers for                                attributed graph attention network for stocks recommendation. Pattern Recognition,
+their helpful comments and constructive guidance. This work was                                    121, Article 108119.
+supported by the National Natural Science Foundation of China under
+Grant 62072285. (Corresponding author: Da Yuan.)                                              Gupta, U., Bhattacharjee, V., & Bishnu, P. S. (2022). StockNet--GRU based stock index
+                                                                                                   prediction. Expert Systems with Applications, 207, Article 117986.
+References
+                                                                                              Holland, J. H. (1992). Adaptation in natural and artificial systems: an introductory analysis
+Alam, M. Z., Siddikee, M. N., & Masukujjaman, M. (2013). Forecasting volatility of                 with applications to biology, control, and artificial intelligence. MIT Press.
+     stock indices with ARCH model. International Journal of Financial Research, 4(2),
+     126.                                                                                     Huang, Y., Gao, Y., Gan, Y., & Ye, M. (2021). A new financial data forecasting model
+                                                                                                   using genetic algorithm and long short-term memory network. Neurocomputing, 425,
+Banik, S., Sharma, N., Mangla, M., Mohanty, S. N., & Shitharth, S. (2022). LSTM based              207­218.
+     decision support system for swing trading in stock market. Knowledge-Based Systems,
+     239, Article 107994.                                                                     Jia, P., Zhang, H., Liu, X., & Gong, X. (2021). Short-term photovoltaic power forecasting
+                                                                                                   based on VMD and ISSA-GRU. IEEE Access, 9, 105939­105950.
+Bollerslev, T., Marrone, J., Xu, L., & Zhou, H. (2014). Stock return predictability and
+     variance risk premia: Statistical inference and international evidence. Journal of       Kipf, T. N., & Welling, M. (2016). Semi-supervised classification with graph
+     Financial and Quantitative Analysis, 49(3), 633­661.                                          convolutional networks. arXiv preprint arXiv:1609.02907.
+
+Challu, C., Olivares, K. G., Oreshkin, B. N., Garza, F., Mergenthaler-Canseco, M., &          Kumar, R., Kumar, P., & Kumar, Y. (2022). Three stage fusion for effective time
+     Dubrawski, A. (2022). N-hits: Neural hierarchical interpolation for time series               series forecasting using Bi-LSTM-ARIMA and improved DE-ABC algorithm. Neural
+     forecasting. arXiv preprint arXiv:2201.12886.                                                 Computing and Applications, 34(21), 18421­18437.
+
+Chen, W., Jiang, M., Zhang, W.-G., & Chen, Z. (2021). A novel graph convolutional             Lahmiri, S. (2016). A variational mode decompoisition approach for analysis and
+     feature based convolutional neural network for stock trend prediction. Information            forecasting of economic and financial time series. Expert Systems with Applications,
+     Sciences, 556, 67­94.                                                                         55, 268­273.
+
+Chen, Y., Wei, Z., & Huang, X. (2018). Incorporating corporation relationship via             Li, W., Bao, R., Harimoto, K., Chen, D., Xu, J., & Su, Q. (2021). Modeling the stock
+     graph convolutional neural networks for stock price prediction. In Proceedings of             relation with graph network for overnight stock movement prediction. In Proceed-
+     the 27th ACM international conference on information and knowledge management (pp.            ings of the twenty-ninth international conference on international joint conferences on
+     1655­1658).                                                                                   artificial intelligence (pp. 4541­4547).
+
+                                                                                              Li, S., Wu, J., Jiang, X., & Xu, K. (2022). Chart GCN: Learning chart information with
+                                                                                                   a graph convolutional network for stock movement prediction. Knowledge-Based
+                                                                                                   Systems, 248, Article 108842.
+
+                                                                                              Lin, Y., Lin, Z., Liao, Y., Li, Y., Xu, J., & Yan, Y. (2022). Forecasting the realized
+                                                                                                   volatility of stock price index: A hybrid model integrating CEEMDAN and LSTM.
+                                                                                                   Expert Systems with Applications, 206, Article 117736.
+
+                                                                                              Lin, Y., Yan, Y., Xu, J., Liao, Y., & Ma, F. (2021). Forecasting stock index price using
+                                                                                                   the CEEMDAN-LSTM model. The North American Journal of Economics and Finance,
+                                                                                                   57, Article 101421.
+
+                                                                                              Liu, T., Ma, X., Li, S., Li, X., & Zhang, C. (2022). A stock price prediction method based
+                                                                                                   on meta-learning and variational mode decomposition. Knowledge-Based Systems,
+                                                                                                   252, Article 109324.
+
+                                                                                              Liu, T., & Shi, Y. (2022). Innovation of the component GARCH model: simulation
+                                                                                                   evidence and application on the Chinese stock market. Mathematics, 10(11), 1903.
+
+                                                                                              Liu, M., Zeng, A., Chen, M., Xu, Z., Lai, Q., Ma, L., & Xu, Q. (2022). Scinet: time
+                                                                                                   series modeling and forecasting with sample convolution and interaction. Advances
+                                                                                                   in Neural Information Processing Systems, 35, 5816­5828.
+
+                                                                                          12
+D. Ma and D. Yuan                                                                                                                                    Expert Systems With Applications 250 (2024) 123948
+
+Lv, P., Wu, Q., Xu, J., & Shu, Y. (2022). Stock index prediction based on time series              Wang, J., Hu, Y., Jiang, T.-X., Tan, J., & Li, Q. (2023). Essential tensor learning
+     decomposition and hybrid model. Entropy, 24(2), 146.                                               for multimodal information-driven stock movement prediction. Knowledge-Based
+                                                                                                        Systems, 262, Article 110262.
+Ma, X., Karkus, P., Hsu, D., & Lee, W. S. (2020). Particle filter recurrent neural
+     networks. Vol. 34, In Proceedings of the AAAI conference on artificial intelligence (pp.      Wang, J.-Z., Wang, J.-J., Zhang, Z.-G., & Guo, S.-P. (2011). Forecasting stock indices
+     5101­5108).                                                                                        with back propagation neural network. Expert Systems with Applications, 38(11),
+                                                                                                        14346­14355.
+Ma, Y., Mao, R., Lin, Q., Wu, P., & Cambria, E. (2023). Multi-source aggregated
+     classification for stock price movement prediction. Information Fusion, 91, 515­528.          Xi, S., & Xu, X. (2023). Dynamic gaussian deep belief network design and stock market
+                                                                                                        application. Intelligent Data Analysis, 27(2), 519­534.
+Ma, D., Yuan, D., Huang, M., & Dong, L. (2024). VGC-GAN: A multi-graph convolution
+     adversarial network for stock price prediction. Expert Systems with Applications,             Xu, W., Wang, B., Liu, J., Chen, Y., Duan, P., & Hong, Z. (2022). Toward practical
+     236, Article 121204. http://dx.doi.org/10.1016/j.eswa.2023.121204, URL https:                      privacy-preserving linear regression. Information Sciences, 596, 119­136.
+     //www.sciencedirect.com/science/article/pii/S0957417423017062.
+                                                                                                   Yang, F., Li, X., Wang, M., Zang, H., Pang, W., & Wang, M. (2023). WaveForM:
+Ma, X., Zhao, T., Guo, Q., Li, X., & Zhang, C. (2022). Fuzzy hypergraph network for                     graph enhanced wavelet learning for long sequence forecasting of multivariate time
+     recommending top-K profitable stocks. Information Sciences, 613, 239­255.                          series. Vol. 37, In Proceedings of the AAAI conference on artificial intelligence (pp.
+                                                                                                        10754­10761).
+Park, H. J., Kim, Y., & Kim, H. Y. (2022). Stock market forecasting using a multi-task
+     approach integrating long short-term memory and the random forest framework.                  Ye, J., Yang, Z., Ma, M., Wang, Y., & Yang, X. (2022). -Kernel-free soft quadratic
+     Applied Soft Computing, 114, Article 108106.                                                       surface support vector regression. Information Sciences, 594, 177­199.
+
+Qiu, Y., Song, Z., & Chen, Z. (2022). Short-term stock trends prediction based on                  Yi, K., Zhang, Q., Fan, W., He, H., Hu, L., Wang, P., An, N., Cao, L., & Niu, Z. (2023).
+     sentiment analysis and machine learning. Soft Computing, 26(5), 2209­2224.                         FourierGNN: Rethinking multivariate time series forecasting from a pure graph
+                                                                                                        perspective. In Thirty-seventh conference on neural information processing systems.
+Salvador, S., & Chan, P. (2007). Toward accurate dynamic time warping in linear time
+     and space. Intelligent Data Analysis, 11(5), 561­580.                                         Yin, X., Yan, D., Almudaifer, A., Yan, S., & Zhou, Y. (2021). Forecasting stock prices
+                                                                                                        using stock correlation graph: A graph convolutional network approach. In 2021
+Si, Y.-W., & Yin, J. (2013). OBST-based segmentation approach to financial time series.                 international joint conference on neural networks (pp. 1­8). http://dx.doi.org/10.
+     Engineering Applications of Artificial Intelligence, 26(10), 2581­2596.                            1109/IJCNN52387.2021.9533510.
+
+Tang, H., Dong, P., & Shi, Y. (2019). A new approach of integrating piecewise linear               Zeng, A., Chen, M., Zhang, L., & Xu, Q. (2023). Are transformers effective for time
+     representation and weighted support vector machine for forecasting stock turning                   series forecasting?
+     points. Applied Soft Computing, 78, 685­696.
+                                                                                                   Zhou, T., Ma, Z., Wen, Q., Wang, X., Sun, L., & Jin, R. (2022). Fedformer: Frequency
+Tay, F. E., & Cao, L. (2001). Application of support vector machines in financial time                  enhanced decomposed transformer for long-term series forecasting. In International
+     series forecasting. Omega, 29(4), 309­317.                                                         conference on machine learning (pp. 27268­27286). PMLR.
+
+                                                                                               13
+
